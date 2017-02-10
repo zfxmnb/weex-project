@@ -1,0 +1,186 @@
+<template>
+    <div class="container">
+        <div class="con">
+            <h1 class="title_con"><text class="title">登录</text></h1>
+            <input type="text" class="input" style="border-color:{{userWarn}};" id="user" oninput="nameChange" value="{{UserName}}" placeholder="UserName" autocomplete="off">
+            <input type="password" class="input" style="border-color:{{passWarn}};" id="pass" oninput="passwordChange" value="{{PassWord}}" placeholder="PassWord" autocomplete="off">
+            <button class="button" onclick="submit"><text class="btn_text">登陆</text></button>
+            <a href="register.js" onclick="register" class="register_con"><text class="register">注册</text></a>
+            <div class="tip_con"> 
+                <text class="tip">{{tip}}</text>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style>
+    .container{
+        flex-direction: row;
+        align-items: center;
+        justify-content: center; 
+        height:750;
+    }
+    .con{
+        flex-direction: column;
+    }
+    .title_con{
+        width:400;
+    }
+    .title{
+        text-align: center;
+        font-size:45;
+        margin-bottom:20;
+    }
+    .input{
+        width:400;
+        margin-bottom: 20;
+        border-width:1;
+        border-radius:5;
+        height:60;
+        line-height: 60;
+        padding-left:10;
+        background-color: #fff;
+    }
+    .button{
+        width:400;
+        border-radius:5;
+        height:60;
+        border-width:1;
+        border-color:#3385ff;
+        background-color: #3385ff;
+        color:#Ffffff;
+        font-size:40;
+        margin-bottom: 20;
+        justify-content: center;
+    }
+    .btn_text{
+        color:#fff;
+        font-size:32;
+        text-align:center;
+    }
+    .register_con{
+        width:400;
+    }
+    .register{
+        text-align:right;
+        font-size:30;
+    }
+    .tip_con{
+        width:400;
+    }
+    .tip{
+        color:#f30;
+    }
+</style>
+
+<script>
+    require('weex-components');
+    var stream = require('@weex-module/stream');
+    var storage = require('@weex-module/storage');
+    var POST_URL="http://192.168.1.175:8000/weex";
+    var modal = require('@weex-module/modal');
+    var navigator = require('@weex-module/navigator');
+    var util = require('../weex/javascript/util.js');
+     module.exports = {
+        data: {
+            UserName:"",
+            PassWord:"",
+            tip:"",
+            status:false,
+            userWarn:"#3385ff",
+            passWarn:"#3385ff"
+        },
+        ready: function() {
+
+            var me = this;
+            console.log(me.$getConfig());
+            setTimeout(function(){
+                storage.getItem('username',function(e){
+                  if(e.data&&e.data!="undefined")
+                    me.UserName = e.data;
+                  else
+                    me.UserName = "";
+                });
+                storage.getItem('password',function(e){
+                  if(e.data&&e.data!="undefined")
+                      me.PassWord = e.data;
+                  else
+                      me.UserName = "";
+                });
+            },300)
+        },
+        methods: {
+          submit: function (e) {
+            var me = this;
+            var nameRegExp=new RegExp("^[a-zA-Z0-9_]{4,12}$");
+            if(nameRegExp.test(me.UserName)){
+                if(me.PassWord.length>5&&me.PassWord.length<15){
+                    me.tip="提交...";
+                    me.userWarn="#3385ff";
+                    me.passWarn="#3385ff";
+                }else{
+                    me.tip="6~14位密码";
+                    me.userWarn="#3385ff";
+                    me.passWarn="#f50";
+                    return false;
+                }
+            }else{
+                if(me.PassWord.length>5&&me.PassWord.length<15){
+                   me.tip="4~12位字母或下划线";
+                   me.userWarn="#f50";
+                    me.passWarn="#3385ff";
+                    return false;
+                }else{
+                    me.tip="4~12位字母或下划线";
+                    me.userWarn="#f50";
+                    me.passWarn="#f50"; 
+                    return false;
+                }
+            }
+
+            stream.fetch({
+                method: 'POST',
+                url: POST_URL,
+                type:'text',
+                body:'username='+me.UserName+'&password='+me.PassWord+"&type=login"
+              }, function(ret) {
+                if(!ret.ok){
+                    modal.toast({
+                      'message': "404网络错误",
+                      'duration': 3
+                    });
+                    me.tip="请检查网络";
+                }else{
+                  me.tip="";
+                  console.log('get:'+JSON.stringify(ret));
+                  if(JSON.parse(ret.data).success=="true"){
+                    me.tip = "登录成功";
+                    storage.setItem('username',me.UserName,function(e){});
+                    storage.setItem('password',me.PassWord,function(e){});
+                    storage.setItem('status',"true",function(e){});
+                    var path=util.path(me,"index.js")
+                    me.tip=path;
+                    setTimeout(function(){
+                        navigator.push({"url":path});
+                    },300)
+                  }else{
+                    me.tip = "用户或者密码错误"
+                  }
+                  
+                }
+              },function(response){
+
+              });
+          },
+          register:function(e){
+
+          },
+          nameChange:function(e){
+            this.UserName=e.value;
+          },
+          passwordChange:function(e){
+            this.PassWord=e.value;
+          }
+        }
+    }
+</script>

@@ -1,0 +1,30 @@
+<template>
+    <web class="content" id="webview" src='http:fanxz.cn' onpagestart="startload" onpagefinish="finishload" onerror="failload"></web>
+</template>
+
+<style>
+
+</style>
+
+<script>
+    module.exports = {
+        data: {
+            color: '#ff0000',
+            text: '',
+        },
+        created: function() {
+
+        },
+        methods:{
+            startload: function(e) {
+
+            },
+            finishload: function(e) {
+
+            },
+            failload: function(e) {
+
+            }
+        }
+    }
+</script>

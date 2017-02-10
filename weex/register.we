@@ -1,0 +1,262 @@
+<template>
+    <div class="container">
+        <div class="con">
+            <h1 class="title_con"><text class="title">注册</text></h1>
+            <div style="flex-direction: row;">
+                <div style="height:150;flex-direction: column;justify-content:center;">   
+                        <text style="font-size:30;">头像：</text>
+                </div> 
+                <image class="head_image" onclick="selectImg" src="http://192.168.1.175:8000/images/{{headImg}}"></image>
+                <div class="select_img_bg" onclick="closeSelect" visibility="{{visibility}}"></div>
+                <div class="select_img"  visibility="{{visibility}}">
+                    <image class="head_imgs" repeat="{{img}}" onclick="selected" index="{{$index}}" src="http://192.168.1.175:8000/images/{{src}}"></image>
+                </div>
+            </div>
+            <input type="text" class="input" style="border-color:{{nickWarn}};" id="user" oninput="nicknameChange" value="   " placeholder="NickName" autocomplete="off">
+            <input type="text" class="input" style="border-color:{{userWarn}};" id="user" oninput="nameChange" value="   " placeholder="UserName" autocomplete="off">
+            <input type="password" class="input" style="border-color:{{passWarn}};" id="pass" oninput="passwordChange" value="   " placeholder="PassWord" autocomplete="off">
+            <input type="password" class="input" style="border-color:{{passWarn}};" id="pass" oninput="repasswordChange" value="   " placeholder="rePassWord" autocomplete="off">
+            <button class="button" onclick="submit"><text class="btn_text">注册</text></button>
+            <a href="login.js" onclick="register" class="register_con"><text class="register">登录</text></a>
+            <div class="tip_con"> 
+                <text class="tip">{{tip}}</text>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style>
+    .container{
+        flex-direction: row;
+        align-items: center;
+        justify-content: center; 
+        height:750;
+    }
+    .con{
+        flex-direction: column;
+        justify-content:center;
+        align-items: center;
+    }
+    .title_con{
+        width:400;
+    }
+    .title{
+        text-align: center;
+        font-size:45;
+        margin-bottom:20;
+    }
+    .head_image{
+        width:150;
+        height:150;
+        margin-bottom:20;
+        border-radius:75;
+    }
+    .select_img_bg{
+        position:fixed;
+        top:0;
+        left:0;
+        width:750;
+        height:1920;
+        background-color:#666;
+        opacity:0.5;
+        z-index:1;
+    }
+     .select_img{
+        position:fixed;
+        flex-direction:row;  
+        flex-wrap:wrap;
+        float:left;
+        width:450;
+        height:600;
+        top:300;
+        left:150;
+        background-color:#ccc;
+        border-radius:5;
+        opacity:0.95;
+        z-index:2;
+        /*visibility:hidden;*/
+    }
+    .head_imgs{
+        width:145;
+        height:145;
+        margin-top:5;
+        margin-left:5;
+    }
+    .input{
+        width:400;
+        margin-bottom: 20;
+        border-width:1;
+        border-radius:5;
+        height:60;
+        line-height: 60;
+        padding-left:10;
+        background-color: #fff;
+    }
+    .button{
+        width:400;
+        border-radius:5;
+        height:60;
+        line-height: 60;
+        border-width:1;
+        border-color:#3385ff;
+        background-color: #3385ff;
+        color:#Ffffff;
+        font-size:40;
+        justify-content: center;
+    }
+    .btn_text{
+        color:#fff;
+        font-size:32;
+        margin-top:10;
+        text-align:center;
+    }
+    .register_con{
+        width:400;
+    }
+    .register{
+        text-align:right;
+        font-size:30;
+    }
+    .tip_con{
+        width:400;
+    }
+    .tip{
+        color:#f30;
+    }
+</style>
+
+<script>
+    require('weex-components');
+    var stream = require('@weex-module/stream');
+    var storage = require('@weex-module/storage');
+    var POST_URL="http://192.168.1.175:8000/weex";
+    var modal = require('@weex-module/modal');
+     module.exports = {
+        data: {
+            UserName:"",
+            NickName:"",
+            PassWord:"",
+            rePassWord:"",
+            tip:"",
+            status:false,
+            userWarn:"#3385ff",
+            passWarn:"#3385ff",
+            nickWarn:"#3385ff",
+            headImg:"headImg_01.png",
+            visibility:"hidden",
+            img:[{src:"headImg_01.png"},{src:"headImg_02.png"},{src:"headImg_03.png"},{src:"headImg_04.png"},
+            {src:"headImg_05.png"},{src:"headImg_06.png"},{src:"headImg_07.png"},{src:"headImg_08.png"},
+            {src:"headImg_09.png"},{src:"headImg_10.png"},{src:"headImg_11.png"},{src:"headImg_12.png"},]
+        },
+        ready: function() {
+
+            var me = this;
+            storage.getItem('loginName',function(e){
+              if(e.data&&e.data!="undefined")
+                me.UserName = e.data;
+              else
+                me.UserName = "";
+            });
+            storage.getItem('loginPass',function(e){
+              if(e.data&&e.data!="undefined")
+                  me.PassWord = e.data;
+              else
+                    me.UserName = "";
+            });
+        },
+        methods: {
+          submit: function (e) {
+            var me = this;
+            var nameRegExp=new RegExp("^[a-zA-Z0-9_]{4,12}$");
+            if(nameRegExp.test(me.UserName)){
+                if(me.PassWord.length>5&&me.PassWord.length<15){
+                    if(me.PassWord==me.rePassWord){
+                        me.tip="提交...";
+                        me.userWarn="#3385ff";
+                        me.passWarn="#3385ff";
+                    }else{
+                        me.tip="两次密码输入不一致";
+                        me.userWarn="#3385ff";
+                        me.passWarn="#f50";
+                        return false;
+                    }
+                }else{
+                    me.tip="6~14位密码";
+                    me.userWarn="#3385ff";
+                    me.passWarn="#f50";
+                    return false;
+                }
+            }else{
+                if(me.PassWord.length>5&&me.PassWord.length<15){
+                   me.tip="4~12位字母或下划线";
+                   me.userWarn="#f50";
+                    me.passWarn="#3385ff";
+                    return false;
+                }else{
+                    me.tip="4~12位字母或下划线";
+                    me.userWarn="#f50";
+                    me.passWarn="#f50"; 
+                    return false;
+                }
+            }
+
+            stream.fetch({
+                method: 'POST',
+                url: POST_URL,
+                type:'text',
+                body:'username='+me.UserName+'&password='+me.PassWord+"&type=register&headimg="+me.headImg+"&nickname="+me.NickName
+              }, function(ret) {
+                if(!ret.ok){
+                    modal.toast({
+                      'message': "404网络错误",
+                      'duration': 3
+                    });
+                    me.tip="请检查网络";
+                }else{
+                  me.tip="";
+                  console.log('get:'+JSON.stringify(ret));
+                  if(JSON.parse(ret.data).success=="true"){
+                    me.tip = "注册成功";
+                    storage.setItem('username',JSON.parse(ret.data).username,function(e){});
+                    storage.setItem('password',JSON.parse(ret.data).password,function(e){});
+                  }else{
+                    me.tip = "用户名已注册"
+                  }
+                  
+                }
+              },function(response){
+
+              });
+          },
+          register:function(e){
+
+          },
+          nameChange:function(e){
+            this.UserName=e.value;
+          },
+          nicknameChange:function(e){
+            this.NickName=e.value;
+          },
+          passwordChange:function(e){
+            this.PassWord=e.value;
+          },
+          repasswordChange:function(e){
+            this.rePassWord=e.value;
+          },
+          selectImg:function(){
+                this.visibility="visible";
+            },
+            closeSelect:function(){
+                this.visibility="hidden";
+            },
+            selected:function(event){
+                //console.log(event)
+                var me = this; 
+                var index=parseInt(event.target.attr.index)+1;
+                var imgname="headImg_"+((index)<10?"0"+index:index)+".png";
+                me.headImg=imgname;
+                me.visibility="hidden";
+            },
+        }
+    }
+</script>

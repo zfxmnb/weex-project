@@ -1,0 +1,174 @@
+<template>
+    <div class="container">
+        <div class="title">
+            <text class="title_text">联系人</text>
+        </div>
+        <div class="search_con">
+            <input type="text" class="search" style="border-color:{{search_border_color}};background-color:{{search_bg_color}};"  onfocus="focus" onblur="blur" placeholder="搜索">
+            <button class="search_btn" onclick="search"><text class="search_btn_text">搜索</text></button>
+        </div>
+        <div class="search_list">
+            <div class="search_list_con" repeat={{list}}>
+                <image class="headimg" src="http://192.168.1.175:8000/images/{{headimg}}"></image>
+                <div style="flex-direction: column;justify-content: center;">
+                    <text class="nickname">昵称：{{nickname}}</text>
+                    <text class="username">账号：{{username}}</text>
+                </div>
+                <button class="push" style="background-color:{{push_bg_color}};" onclick="add"><text class="push_text" style="color:{{push_color}};">{{char}}</text></button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style>
+    .push_text{
+        font-size:50;
+        font-weight:bold;
+        color:#fff;
+    }
+    .push{
+        position: absolute;
+        right:30;
+        width:60;
+        height:60;
+        margin-top:30;
+        border-radius:30;
+        background-color:#3385ff;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    .nickname{
+        font-size:35;
+    }
+    .username{
+        font-size:30;
+        color:#aaa;
+    }
+    .headimg{
+        width:100;
+        height:100;
+        margin:10;
+    }
+    .search_list_con{
+        position: relative;
+        height:120px;
+        background-color:#eee;
+        border-top-width:1;
+        border-bottom-width:1;
+        border-color:#3385ff;
+        flex-direction: row;
+    }
+    .title{
+        background-color:#3385ff;
+        flex-direction: column;
+        justify-content: center;
+        height:80;
+        align-items: center;
+    }
+    .title_text{
+        font-size:40;
+        color:#fff;
+    }
+    .search_con{
+        flex-direction: row;
+        margin-bottom:10;
+    }
+    .search{
+        border-color:#ccc;
+        border-width:2;
+        border-top-left-radius:5;
+        border-bottom-left-radius:5;
+        height:80;
+        margin-top:5;
+        margin-left:5;
+        padding:10;
+        width:600;
+        background-color:#eee;
+    }
+    .search_btn{
+        border-color:#3385ff;
+        border-width:2;
+        border-top-right-radius:5;
+        border-bottom-right-radius:5;
+        height:80;
+        margin-top:5;
+        margin-right:5;
+        padding:5;
+        width:140;
+        background-color:#3385ff;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    .search_btn_text{
+        font-size:40;
+        color:#fff;
+
+    }
+</style>
+
+<script>
+    require('weex-components');
+    var stream = require('@weex-module/stream');
+    var storage = require('@weex-module/storage');
+    var POST_URL="http://192.168.1.175:8000/weex";
+    var modal = require('@weex-module/modal');
+    var util = require('../javascript/util.js');
+    var navigator = require('@weex-module/navigator');
+        module.exports = {
+        data: {
+            search_border_color:"#ccc",
+            search_bg_color:"#eee",
+            // char:"+",
+            // push_bg_color:"#3385ff",
+            // push_color:"#fff",
+            list:[]
+        },
+        created: function() {
+
+        },
+        methods:{
+            focus:function(){
+                this.search_border_color="#3385ff";
+                this.search_bg_color="#fff";
+            },
+            blur:function(){
+                this.search_border_color="#ccc";
+                this.search_bg_color="#eee";
+            },
+            add:function(event){
+                this.char="✔";
+                this.push_bg_color="#eee";
+                this.push_color="#3385ff";
+            },
+            search:function(){
+                var me=this;
+                stream.fetch({
+                    method: 'POST',
+                    url: POST_URL,
+                    type:'text',
+                    body:"type=search"
+                  }, function(ret) {
+                    if(!ret.ok){
+                        modal.toast({
+                          'message': "404网络错误",
+                          'duration': 3
+                        });
+                    }else{
+                        if(JSON.parse(ret.data).success=="true"){
+                            var list=JSON.parse(ret.data).data;
+                            for(var i in list){
+                                list[i].push_bg_color="#3385ff";
+                                list[i].push_color="#fff";
+                                list[i].char="+";
+                            }
+                            me.list=list;
+                        }
+                            //modal.toast({'message': ret});
+                    }
+                },function(response){});
+            }
+        }
+    }
+</script>

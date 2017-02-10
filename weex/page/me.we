@@ -1,0 +1,196 @@
+<template>
+    <div class="container">
+        <div>   
+            <image class="head_image" onclick="selectImg" src="http://192.168.1.175:8000/images/{{headImg}}"></image>
+            <div class="select_img_bg" onclick="closeSelect" visibility="{{visibility}}"></div>
+            <div class="select_img"  visibility="{{visibility}}">
+                <image class="head_imgs" repeat="{{img}}" onclick="selected" index="{{$index}}" src="http://192.168.1.175:8000/images/{{src}}"></image>
+            </div>
+        </div>
+        <text class="nickname" onclick="changename">昵称：{{nickname}}</text>
+        <text class="username">账号：{{username}}</text>
+        <wxc-button type="warning" class="button" onclick="logout" value="退出登录"></wxc-button>
+    </div>
+</template>
+
+<style>
+
+    .container{
+        flex-direction: column;
+        justify-content: center;
+        align-items:center;
+    }
+    .head_image{
+        width:150;
+        height:150;
+        margin-bottom:20;
+        border-radius:75;
+    }
+    .select_img_bg{
+        position:fixed;
+        top:0;
+        left:0;
+        width:750;
+        height:1920;
+        background-color:#666;
+        opacity:0.5;
+        z-index:1;
+    }
+     .select_img{
+        position:fixed;
+        flex-direction:row;  
+        flex-wrap:wrap;
+        float:left;
+        width:450;
+        height:600;
+        top:300;
+        left:150;
+        background-color:#ccc;
+        border-radius:5;
+        opacity:0.95;
+        z-index:2;
+        /*visibility:hidden;*/
+    }
+    .head_imgs{
+        width:145;
+        height:145;
+        margin-top:5;
+        margin-left:5;
+    }
+    .nickname{
+        font-size: 40;
+        margin-bottom:20;
+    }
+    .username{
+        color:#999;
+        font-size: 32;
+    }
+    .button{
+        margin-top:50;
+    }
+</style>
+
+<script>
+    require('weex-components');
+    var stream = require('@weex-module/stream');
+    var storage = require('@weex-module/storage');
+    var POST_URL="http://192.168.1.175:8000/weex";
+    var modal = require('@weex-module/modal');
+    var util = require('../javascript/util.js');
+    var navigator = require('@weex-module/navigator');
+
+    module.exports = {
+        data: {
+            username:"",
+            nickname:"",
+            headImg:"",
+            visibility:"hidden",
+            img:[{src:"headImg_01.png"},{src:"headImg_02.png"},{src:"headImg_03.png"},{src:"headImg_04.png"},
+            {src:"headImg_05.png"},{src:"headImg_06.png"},{src:"headImg_07.png"},{src:"headImg_08.png"},
+            {src:"headImg_09.png"},{src:"headImg_10.png"},{src:"headImg_11.png"},{src:"headImg_12.png"},]
+        },
+        created: function() {
+            var path=util.path(this,"../login.js");
+            var me=this;
+            storage.getItem('username',function(e){
+              if(e.data&&e.data!="undefined")
+               stream.fetch({
+                    method: 'POST',
+                    url: POST_URL,
+                    type:'text',
+                    body:'username='+e.data+"&type=user"
+                  }, function(ret) {
+                    if(!ret.ok){
+                        modal.toast({
+                          'message': "404网络错误",
+                          'duration': 3
+                        });
+                    }else{
+                        if(JSON.parse(ret.data).success=="true"){
+                                me.username=JSON.parse(ret.data).username;
+                                me.nickname=JSON.parse(ret.data).nickname;
+                                me.headImg=JSON.parse(ret.data).headimg;
+                        }else{
+                                storage.setItem('status',"false",function(e){});
+                                navigator.push({'url': path,'animated' : 'true'},function(){});
+                        }
+                        
+                    }
+                  },function(response){});
+            else
+                me.UserName = "";
+            });
+        },
+        methods:{
+            changename:function(){
+                var me = this;
+                modal.prompt({
+                  'message': '输入修改昵称',
+                  'okTitle': '确认',
+                  'cancelTitle': '取消'
+                }, function(result) {
+                    //modal.toast({'message':"Click Prompt"+result});
+                    //console.log(result)
+                    if(result.result=="确认")
+                        if(result.data.length>0&&result.data.length<12){
+                           stream.fetch({
+                                method: 'POST',
+                                url: POST_URL,
+                                type:'text',
+                                body:'username='+me.username+'&nickname='+result.data+"&type=resetnick"
+                              }, function(ret) {
+                                if(!ret.ok){
+                                    modal.toast({
+                                      'message': "404网络错误",
+                                      'duration': 3
+                                    });
+                                }else{
+                                    if(JSON.parse(ret.data).success="true")
+                                            me.nickname=result.data;
+                                }
+                              },function(response){});
+                        }else{
+                            modal.toast({'message':"1~12位字符昵称"});
+                        }
+                });
+            },
+            selectImg:function(){
+                this.visibility="visible";
+            },
+            closeSelect:function(){
+                this.visibility="hidden";
+            },
+            selected:function(event){
+                //console.log(event)
+                var me = this; 
+                var index=parseInt(event.target.attr.index)+1;
+                var imgname="headImg_"+((index)<10?"0"+index:index)+".png";
+                stream.fetch({
+                    method: 'POST',
+                    url: POST_URL,
+                    type:'text',
+                    body:'username='+me.username+'&headimg='+imgname+"&type=resetimg"
+                  }, function(ret) {
+                    if(!ret.ok){
+                        modal.toast({
+                          'message': "404网络错误",
+                          'duration': 3
+                        });
+                    }else if(JSON.parse(ret.data).success=="true"){
+                        me.headImg=imgname;
+                    }
+                    setTimeout(function(){
+                        me.visibility="hidden";
+                    },300)
+                  },function(response){});
+            },
+            logout:function(){
+                var me = this;
+                var path=util.path(this,"../login.js");
+                modal.toast({'message':path});
+                storage.setItem('status',"false",function(e){});
+                navigator.push({'url': path,'animated' : 'true'},function(){});
+            }
+        }
+    }
+</script>
