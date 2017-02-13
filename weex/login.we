@@ -91,7 +91,6 @@
             passWarn:"#3385ff"
         },
         ready: function() {
-
             var me = this;
             console.log(me.$getConfig());
             setTimeout(function(){
@@ -107,7 +106,7 @@
                   else
                       me.UserName = "";
                 });
-            },300)
+            },200)
         },
         methods: {
           submit: function (e) {
@@ -152,7 +151,7 @@
                     me.tip="请检查网络";
                 }else{
                   me.tip="";
-                  console.log('get:'+JSON.stringify(ret));
+                  //console.log('get:'+JSON.stringify(ret));
                   if(JSON.parse(ret.data).success=="true"){
                     me.tip = "登录成功";
                     storage.setItem('username',me.UserName,function(e){});

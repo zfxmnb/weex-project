@@ -10,11 +10,11 @@ var db=new mongo.Db("weex",server,{safe:true});//创建数据库对象
 router.post('/', function(req, res, next) {
   res.setHeader("Access-Control-Allow-Origin","*");
   res.setHeader("Content-Type","text/plain;utf-8");
-  if(req.body.type=="login"||req.body.type=="register"||req.body.type=="user"||req.body.type=="resetnick"||req.body.type=="resetimg"||req.body.type=="search"){
+  //if(req.body.type=="login"||req.body.type=="register"||req.body.type=="user"||req.body.type=="resetnick"||req.body.type=="resetimg"||req.body.type=="search"){
   	var collection="user";
-  }else{
-  	var collection="record";
-  }
+  //}else{
+  	//var collection="record";
+  //}
   db.open(function (err,db) {
 	    db.collection(collection,function(err,collection){
 	    	if(err) throw err;
@@ -104,20 +104,105 @@ router.post('/', function(req, res, next) {
 			  }
 			  //搜索用户
 			  else if(req.body.type=="search"){
-			  	collection.find({username:{$ne:""}}).toArray(function (err,docs){
+			  	collection.find({
+			  			$or:[{username:{$regex: req.body.searchword, $options:'i'}},{nickname:{$regex: req.body.searchword, $options:'i'}}]
+			  		}).toArray(function (err,docs){
+			 			if(err) throw err;
+			 			else{
+			 				//console.log(docs);
+			 				if(!docs){
+			 					res.end(JSON.stringify({success:"false"}));
+			 				}else{
+			 					res.end(JSON.stringify({success:"true",data:docs}));
+			 				}	
+			 				db.close();	
+			 			}
+		 		})
+			  }
+			  //添加好友
+			  else if(req.body.type=="addfriend"){
+			  		console.log(req.body);
+			  		var date=new Date();
+			  		var time=date.getFullYear()+"-"+(date.getMonth()+1)+"-"+date.getDate()+" "+date.getHours()+":"+date.getMinutes()+":"+date.getSeconds();
+			  		msg(req.body.username,req.body.tousername,"等待对方确认",time,"from",function(){
+			  			msg(req.body.tousername,req.body.username,"账号为"+req.body.username+"的用户申请加您为好友",time,"to",function(){
+			  				res.end(JSON.stringify({success:"true"}));
+			  				db.close();	
+			  			});
+			  		})
+			  }
+			  //获取消息
+			  else if(req.body.type=="loadmsg"){
+			  		collection.findOne({username:req.body.username},function (err,docs){
 		 			if(err) throw err;
 		 			else{
-		 				console.log(docs);
 		 				if(!docs){
-		 						res.end(JSON.stringify({success:"false"}));
+		 					res.end(JSON.stringify({success:"false"}));
 		 				}else{
-
-		 						res.end(JSON.stringify({success:"true",data:docs}));
-		 				}	
+		 					console.log(docs)
+		 					res.end(JSON.stringify({success:"true",msg:docs.msg}));
+		 				}
 		 				db.close();	
 		 			}
 		 		})
 			  }
+			  //批量获取用户信息
+			  else if(req.body.type=="batchuser"){
+			  		console.log(req.body.condition);
+			  		if(req.body.condition.length>0)
+				  		collection.find({
+				  			$or:JSON.parse(req.body.condition)
+				  		}).toArray(function (err,docs){
+				 			if(err) throw err;
+				 			else{
+				 				if(!docs.length>0){
+				 					res.end(JSON.stringify({success:"false"}));
+				 				}else{
+				 					res.end(JSON.stringify({success:"true",data:docs}));
+				 				}	
+				 				db.close();	
+				 			}
+			 			})
+			 		else{
+			 			res.end(JSON.stringify({success:"false"}));
+			 			db.close();	
+			 		}
+
+			  }
+
+			  function msg(username1,username2,message,time,type,callback){
+			  	collection.findOne({
+			  			username:username1
+			  		},function (err,docs){
+			 			if(err) throw err;
+			 			else{
+			 				if(!docs){
+			 					res.end(JSON.stringify({success:"false"}));
+			 					db.close();
+			 				}else{
+			 					if(docs.msg){
+			 						var msg=","+docs.msg;
+			 					}else{
+			 						var msg="";
+			 					}
+			 					var m=JSON.stringify({'username':username2,'msg':message,'time':time,'type':type});
+			 					m+=msg;
+			 					collection.updateOne(
+							  		{username:username1},
+							  		{$set:{msg:m}},
+							  		function (err,docs){
+						 			if(err) throw err;
+						 			else{
+						 				//res.end(JSON.stringify({success:"true"}));
+						 				callback.call();
+						 			}
+						 		})
+			 					//res.end(JSON.stringify({success:"true",data:docs}));
+			 				}		
+			 			}
+		 			})
+			  }
+
 			}
 		});
 	});

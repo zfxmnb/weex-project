@@ -1,30 +1,149 @@
 <template>
-    <web class="content" id="webview" src='http:fanxz.cn' onpagestart="startload" onpagefinish="finishload" onerror="failload"></web>
+    <!-- <web class="content" id="webview" src='http:fanxz.cn' onpagestart="startload" onpagefinish="finishload" onerror="failload"></web> -->
+    <div class="container">
+        <div class="title">
+            <text class="title_text">消息</text>
+        </div>
+        <div class="msg_list">
+            <div visibility="{{tips}}"><text class="tips_word">没有任何消息</text></div>
+            <div class="msg_list_con" repeat={{list}}>
+                <image class="headimg" src="http://192.168.1.175:8000/images/{{headimg}}"></image>
+                <div style="flex-direction: column;justify-content: center;">
+                    <text class="nickname">{{nickname||username}}</text>
+                    <text class="msg">{{msg}}</text>
+                    <text class="time">{{time}}</text>
+                </div>
+            </div>
+        </div>
+    </div>
 </template>
 
 <style>
-
+    .msg{
+        color:#333;
+        font-size:24;
+    }
+    .time{
+        color:#999;
+        font-size:18;
+    }
+    .tips_word{
+        font-size:30;
+        color:#aaa;
+        text-align:center;
+    }
+    .nickname{
+        font-size:35;
+    }
+    .username{
+        font-size:30;
+        color:#aaa;
+    }
+    .headimg{
+        width:100;
+        height:100;
+        margin:10;
+    }
+    .msg_list_con{
+        position: relative;
+        height:120px;
+        background-color:#eee;
+        border-top-width:1;
+        border-bottom-width:1;
+        border-color:#3385ff;
+        flex-direction: row;
+    }
+    .title{
+        background-color:#3385ff;
+        flex-direction: column;
+        justify-content: center;
+        height:80;
+        align-items: center;
+    }
+    .title_text{
+        font-size:40;
+        color:#fff;
+    }
 </style>
 
 <script>
+    require('weex-components');
+    var stream = require('@weex-module/stream');
+    var storage = require('@weex-module/storage');
+    var POST_URL="http://192.168.1.175:8000/weex";
+    var modal = require('@weex-module/modal');
+    var util = require('../javascript/util.js');
+    var navigator = require('@weex-module/navigator');
+
     module.exports = {
         data: {
-            color: '#ff0000',
-            text: '',
+            username:"",
+            list:[],
+            tips:"hidden"
         },
         created: function() {
+            var me = this;
+            storage.getItem('username',function(e){
+                if(e.data&&e.data!="undefined"){
+                    me.username=e.data;
+                    stream.fetch({
+                        method: 'POST',
+                        url: POST_URL,
+                        type:'text',
+                        body:'username='+me.username+"&type=loadmsg"
+                      }, function(ret) {
+                        if(!ret.ok){
+                            modal.toast({
+                              'message': "404网络错误",
+                              'duration': 3
+                            });
+                        }else if(JSON.parse(ret.data).success=="true"){
 
+                            var msg=JSON.parse(ret.data).msg;
+                            msg=JSON.parse("["+msg+"]");
+                            //console.log(msg)
+                            var arr=[];
+                            for(var i=0;i<msg.length;i++){
+                                arr.push({"username":msg[i].username});
+                            }
+                            if(arr.length>0){
+                                me.tips="hidden";
+                                stream.fetch({
+                                    method: 'POST',
+                                    url: POST_URL,
+                                    type:'text',
+                                    body:'condition='+JSON.stringify(arr)+"&type=batchuser"
+                                  }, function(ret){
+                                    if(!ret.ok){
+                                        modal.toast({
+                                          'message': "404网络错误",
+                                          'duration': 3
+                                        });
+                                    }else{
+                                        if(JSON.parse(ret.data).success=="true"){
+                                            var data=JSON.parse(ret.data).data;
+                                            for(var i=0;i<msg.length;i++){
+                                                for(var j=0;j<data.length;j++){
+                                                    if(data[j].username==msg[i].username){
+                                                        msg[i].headimg=data[j].headimg;
+                                                        msg[i].nickname=data[j].nickname;
+                                                    }
+                                                }
+                                            }
+                                            me.list=msg;
+                                        }         
+                                    }
+                                  },function(response){});
+                            }else{
+                                me.tips="visiale";
+                            }
+                        }
+                      },function(response){});
+                }
+            });
         },
         methods:{
-            startload: function(e) {
-
-            },
-            finishload: function(e) {
-
-            },
-            failload: function(e) {
-
-            }
+            
         }
     }
 </script>

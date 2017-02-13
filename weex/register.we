@@ -217,8 +217,7 @@
                   console.log('get:'+JSON.stringify(ret));
                   if(JSON.parse(ret.data).success=="true"){
                     me.tip = "注册成功";
-                    storage.setItem('username',JSON.parse(ret.data).username,function(e){});
-                    storage.setItem('password',JSON.parse(ret.data).password,function(e){});
+                    storage.setItem('username',me.UserName,function(e){});
                   }else{
                     me.tip = "用户名已注册"
                   }
@@ -227,9 +226,6 @@
               },function(response){
 
               });
-          },
-          register:function(e){
-
           },
           nameChange:function(e){
             this.UserName=e.value;

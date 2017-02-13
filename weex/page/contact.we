@@ -4,23 +4,135 @@
             <text class="title_text">联系人</text>
         </div>
         <div class="search_con">
-            <input type="text" class="search" style="border-color:{{search_border_color}};background-color:{{search_bg_color}};"  onfocus="focus" onblur="blur" placeholder="搜索">
+            <input type="text" oninput="searchWord" class="search" style="border-color:{{search_border_color}};background-color:{{search_bg_color}};"  onfocus="focus" onblur="blur" placeholder="输入账号或昵称">
             <button class="search_btn" onclick="search"><text class="search_btn_text">搜索</text></button>
         </div>
         <div class="search_list">
+            <div visibility="{{tips}}"><text class="tips_word">未找到匹配用户</text></div>
             <div class="search_list_con" repeat={{list}}>
                 <image class="headimg" src="http://192.168.1.175:8000/images/{{headimg}}"></image>
                 <div style="flex-direction: column;justify-content: center;">
                     <text class="nickname">昵称：{{nickname}}</text>
                     <text class="username">账号：{{username}}</text>
                 </div>
-                <button class="push" style="background-color:{{push_bg_color}};" onclick="add"><text class="push_text" style="color:{{push_color}};">{{char}}</text></button>
+                <button class="push" name="{{username}}" style="background-color:{{push_bg_color}};" onclick="add"><text class="push_text" style="color:{{push_color}};">{{char}}</text></button>
             </div>
         </div>
     </div>
 </template>
-
+<script>
+    require('weex-components');
+    var stream = require('@weex-module/stream');
+    var storage = require('@weex-module/storage');
+    var POST_URL="http://192.168.1.175:8000/weex";
+    var modal = require('@weex-module/modal');
+    var util = require('../javascript/util.js');
+    var navigator = require('@weex-module/navigator');
+    var username='';
+        module.exports = {
+        data: {
+            username:"",
+            search_border_color:"#ccc",
+            search_bg_color:"#eee",
+            search_word:"",
+            list:[],
+            tips:"hidden"
+        },
+        created: function() {
+            var me = this;
+            storage.getItem('username',function(e){
+              if(e.data&&e.data!="undefined"){
+                me.username=e.data;
+                username=me.username;
+              }
+            })
+        },
+        methods:{
+            focus:function(){
+                this.search_border_color="#3385ff";
+                this.search_bg_color="#fff";
+            },
+            blur:function(){
+                this.search_border_color="#ccc";
+                this.search_bg_color="#eee";
+            },
+            add:function(event){
+                var me = this;
+                modal.confirm({
+                  'message': "发送添加好友请求",
+                  'okTitle': "取消",
+                  'cancelTitle': "发送"
+                }, function(result) {
+                    if(result=="发送"){
+                        stream.fetch({
+                            method: 'POST',
+                            url: POST_URL,
+                            type:'text',
+                            body:'username='+username+"&tousername="+event.target.attr.name+"&type=addfriend"
+                          }, function(ret) {
+                            if(!ret.ok){
+                                modal.toast({
+                                  'message': "404网络错误",
+                                  'duration': 3
+                                });
+                            }else{
+                                if(JSON.parse(ret.data).success="true"){
+                                    me.char="✔";
+                                    me.push_bg_color="#eee";
+                                    me.push_color="#3385ff";
+                                }else{
+                                     modal.toast({
+                                      'message': "请求失败",
+                                      'duration': 3
+                                    });
+                                }        
+                            }
+                          },function(response){});
+                    }
+                });
+            },
+            searchWord:function(event){
+                this.search_word=event.value;
+            },
+            search:function(){
+                var me=this;
+                stream.fetch({
+                    method: 'POST',
+                    url: POST_URL,
+                    type:'text',
+                    body:"type=search&searchword="+me.search_word
+                  }, function(ret) {
+                    if(!ret.ok){
+                        modal.toast({
+                          'message': "404网络错误",
+                          'duration': 3
+                        });
+                    }else{
+                        if(JSON.parse(ret.data).success=="true"&&JSON.parse(ret.data).data.length>0){
+                            me.tips="hidden";
+                            var list=JSON.parse(ret.data).data;
+                            for(var i in list){
+                                list[i].push_bg_color="#3385ff";
+                                list[i].push_color="#fff";
+                                list[i].char="+";
+                            }
+                            me.list=list;
+                        }else{
+                            me.list=[];
+                            me.tips="visible";
+                        }
+                    }
+                },function(response){});
+            }
+        }
+    }
+</script>
 <style>
+    .tips_word{
+        font-size:30;
+        color:#aaa;
+        text-align:center;
+    }
     .push_text{
         font-size:50;
         font-weight:bold;
@@ -107,68 +219,3 @@
 
     }
 </style>
-
-<script>
-    require('weex-components');
-    var stream = require('@weex-module/stream');
-    var storage = require('@weex-module/storage');
-    var POST_URL="http://192.168.1.175:8000/weex";
-    var modal = require('@weex-module/modal');
-    var util = require('../javascript/util.js');
-    var navigator = require('@weex-module/navigator');
-        module.exports = {
-        data: {
-            search_border_color:"#ccc",
-            search_bg_color:"#eee",
-            // char:"+",
-            // push_bg_color:"#3385ff",
-            // push_color:"#fff",
-            list:[]
-        },
-        created: function() {
-
-        },
-        methods:{
-            focus:function(){
-                this.search_border_color="#3385ff";
-                this.search_bg_color="#fff";
-            },
-            blur:function(){
-                this.search_border_color="#ccc";
-                this.search_bg_color="#eee";
-            },
-            add:function(event){
-                this.char="✔";
-                this.push_bg_color="#eee";
-                this.push_color="#3385ff";
-            },
-            search:function(){
-                var me=this;
-                stream.fetch({
-                    method: 'POST',
-                    url: POST_URL,
-                    type:'text',
-                    body:"type=search"
-                  }, function(ret) {
-                    if(!ret.ok){
-                        modal.toast({
-                          'message': "404网络错误",
-                          'duration': 3
-                        });
-                    }else{
-                        if(JSON.parse(ret.data).success=="true"){
-                            var list=JSON.parse(ret.data).data;
-                            for(var i in list){
-                                list[i].push_bg_color="#3385ff";
-                                list[i].push_color="#fff";
-                                list[i].char="+";
-                            }
-                            me.list=list;
-                        }
-                            //modal.toast({'message': ret});
-                    }
-                },function(response){});
-            }
-        }
-    }
-</script>
